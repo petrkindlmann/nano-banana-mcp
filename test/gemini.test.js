@@ -138,3 +138,14 @@ test("withRetry honors numeric Retry-After seconds", async () => {
   }, { sleep: async (ms) => { delays.push(ms); } });
   assert.deepEqual(delays, [7000]);
 });
+
+test("sniffMime detects png, jpeg, webp, and unknown", async () => {
+  const { sniffMime } = await import("../lib/gemini.js");
+  const png = await sharp({ create: { width: 4, height: 4, channels: 3, background: { r: 1, g: 2, b: 3 } } }).png().toBuffer();
+  const jpg = await sharp({ create: { width: 4, height: 4, channels: 3, background: { r: 1, g: 2, b: 3 } } }).jpeg().toBuffer();
+  const webp = await sharp({ create: { width: 4, height: 4, channels: 3, background: { r: 1, g: 2, b: 3 } } }).webp().toBuffer();
+  assert.equal(sniffMime(png), "image/png");
+  assert.equal(sniffMime(jpg), "image/jpeg");
+  assert.equal(sniffMime(webp), "image/webp");
+  assert.equal(sniffMime(Buffer.from("garbage")), null);
+});
