@@ -74,11 +74,26 @@ Restart your client. The five tools below will appear.
 
 ### Models
 
-| Tier | Model ID | Best for | Sizes |
-| --- | --- | --- | --- |
-| `nano` | `gemini-2.5-flash-image` | Fast, high-volume | 1K |
-| `flash` | `gemini-3.1-flash-image` | Best all-around (**default**) | 0.5K, 1K, 2K, 4K |
-| `pro` | `gemini-3-pro-image` | Professional, thinking, grounding | 1K, 2K, 4K |
+| Tier | Model ID | Sizes | Search grounding | Thinking | Video input | JPEG output |
+| --- | --- | --- | --- | --- | --- | --- |
+| `nano` | `gemini-2.5-flash-image` | 1K | — | — | — | — (PNG only) |
+| `flash` | `gemini-3.1-flash-image` | 0.5K, 1K, 2K, 4K | web + image | — | ✅ | ✅ |
+| `pro` | `gemini-3-pro-image` | 1K, 2K, 4K | web | ✅ | — | ✅ |
+
+**Which should I use?**
+
+- **`flash` (default) — your go-to.** Best all-around balance of quality, cost, and
+  latency. Up to 4K, search grounding, the widest aspect ratios (`21:9`, `1:4`, etc.),
+  and the only tier that accepts video input.
+- **`pro` — the highest-quality renderer.** Use for professional/deliverable assets,
+  complex multi-element instructions, and legible **text rendered inside the image**
+  (infographics, posters, menus). A built-in "Thinking" pass refines composition before
+  rendering. Slower and pricier.
+- **`nano` — speed and volume.** 1K-only, no grounding/thinking, always returns PNG.
+  Reach for it when generating many images fast and per-image quality matters less.
+
+> `generate_story` defaults to `pro` (best interleaved quality); `generate_from_video`
+> is locked to `flash` (the only tier that accepts video).
 
 ### `generate_image`
 
