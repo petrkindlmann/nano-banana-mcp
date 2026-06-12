@@ -7,10 +7,9 @@ Status: Approved (design), pending implementation
 
 Upgrade the nano-banana MCP server (Gemini Interactions API image generation) with
 missing API capabilities, correctness fixes, robustness, and image previews —
-grounded in the official Interactions API image-generation docs. Ideas were
-evaluated from AceDataCloud's NanoBananaMCP; only its use-case-rich tool
-descriptions carry over (its task-polling/hosted-HTTP architecture exists to wrap
-a third-party relay API and does not apply to a direct Gemini integration).
+grounded in the official Interactions API image-generation docs. The tool
+descriptions carry use-case keywords (virtual try-on, product placement, photo
+restoration, etc.) to help the calling LLM route and prompt well.
 
 ## Structure
 
