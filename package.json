@@ -1,11 +1,41 @@
 {
   "name": "nano-banana-mcp",
   "version": "2.1.0",
-  "description": "MCP server for Gemini image generation (Nano Banana, Interactions API)",
+  "description": "MCP server for Gemini image generation and editing (Nano Banana, Interactions API)",
   "type": "module",
   "main": "index.js",
   "bin": {
     "nano-banana-mcp": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gemini",
+    "nano-banana",
+    "image-generation",
+    "image-editing",
+    "ai",
+    "claude",
+    "text-to-image"
+  ],
+  "author": "Petr Kindlmann",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/petrkindlmann/nano-banana-mcp.git"
+  },
+  "homepage": "https://github.com/petrkindlmann/nano-banana-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/petrkindlmann/nano-banana-mcp/issues"
   },
   "scripts": {
     "start": "node index.js",
