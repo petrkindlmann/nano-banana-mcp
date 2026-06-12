@@ -1,9 +1,30 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import {
   MODELS, MAX_REFERENCE_IMAGES,
   resolveModel, mapRatio, validSize, mimeFromPath, mimeFromOutputExt, slugify,
 } from "../lib/config.js";
+
+const CONFIG_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "../lib/config.js");
+
+// Env overrides are read at module-load, so verify them in a fresh subprocess.
+function loadConfigWithEnv(env) {
+  const script =
+    `import("${CONFIG_PATH}").then(m => {` +
+    `process.stdout.write(JSON.stringify({` +
+    `models: m.MODELS,` +
+    `resolvedFlash: m.resolveModel("flash"),` +
+    `flashSize2K: m.validSize("2K", m.MODELS.flash),` +
+    `nanoSize2K: m.validSize("2K", m.MODELS.nano),` +
+    `flashRatio: m.mapRatio("21:9", m.MODELS.flash),` +
+    `}))})`;
+  const out = execFileSync(process.execPath, ["--input-type=module", "-e", script],
+    { env: { ...process.env, ...env }, encoding: "utf8" });
+  return JSON.parse(out);
+}
 
 test("resolveModel defaults to flash and rejects unknown tiers", () => {
   assert.equal(resolveModel(), MODELS.flash);
@@ -51,4 +72,30 @@ test("slugify produces filesystem-safe slugs with fallback", () => {
 
 test("MAX_REFERENCE_IMAGES is 14 per docs", () => {
   assert.equal(MAX_REFERENCE_IMAGES, 14);
+});
+
+test("MODELS use documented defaults when no env overrides are set", () => {
+  assert.equal(MODELS.nano, "gemini-2.5-flash-image");
+  assert.equal(MODELS.flash, "gemini-3.1-flash-image");
+  assert.equal(MODELS.pro, "gemini-3-pro-image");
+});
+
+test("env vars override per-tier model IDs", () => {
+  const cfg = loadConfigWithEnv({
+    NANO_BANANA_MODEL_FLASH: "gemini-3.2-flash-image",
+    NANO_BANANA_MODEL_PRO: "gemini-4-pro-image",
+  });
+  assert.equal(cfg.models.flash, "gemini-3.2-flash-image");
+  assert.equal(cfg.models.pro, "gemini-4-pro-image");
+  assert.equal(cfg.models.nano, "gemini-2.5-flash-image"); // untouched
+  assert.equal(cfg.resolvedFlash, "gemini-3.2-flash-image"); // resolveModel reflects override
+});
+
+test("capability tables follow the overridden flash ID", () => {
+  // The size/ratio tables key off the (overridden) flash ID, so flash keeps its
+  // 2K/0.5K/wide-ratio capabilities even with a new model string.
+  const cfg = loadConfigWithEnv({ NANO_BANANA_MODEL_FLASH: "gemini-3.2-flash-image" });
+  assert.equal(cfg.flashSize2K, "2K");   // flash supports 2K
+  assert.equal(cfg.nanoSize2K, "1K");    // nano still clamped to 1K
+  assert.equal(cfg.flashRatio, "21:9");  // flash keeps wide ratios
 });

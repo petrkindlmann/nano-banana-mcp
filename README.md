@@ -62,6 +62,29 @@ Add to your MCP config (e.g. `~/Library/Application Support/Claude/claude_deskto
 
 Restart your client. The five tools below will appear.
 
+### Configuration
+
+| Env var | Required | Description |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | ✅ | Your Gemini API key. |
+| `NANO_BANANA_MODEL_NANO` | — | Override the `nano` tier's model ID. |
+| `NANO_BANANA_MODEL_FLASH` | — | Override the `flash` tier's model ID. |
+| `NANO_BANANA_MODEL_PRO` | — | Override the `pro` tier's model ID. |
+
+The model IDs are beta/preview models that Google rotates and occasionally retires.
+If a newer version ships — or a configured ID is deprecated — point a tier at a new
+model without editing code:
+
+```json
+"env": {
+  "GEMINI_API_KEY": "your_key_here",
+  "NANO_BANANA_MODEL_FLASH": "gemini-3.2-flash-image"
+}
+```
+
+Each tier keeps its capability profile (sizes, aspect ratios, grounding) regardless of
+the ID you assign it.
+
 ## Tools
 
 | Tool | Description |
