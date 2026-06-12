@@ -111,3 +111,30 @@ test("makePreview downscales to <=512px jpeg", async () => {
 test("makePreview returns null on garbage input instead of throwing", async () => {
   assert.equal(await makePreview(Buffer.from("not an image")), null);
 });
+
+test("withRetry retries network errors like ECONNRESET", async () => {
+  let calls = 0;
+  const result = await withRetry(async () => {
+    calls++;
+    if (calls < 2) { const e = new Error("socket hang up"); e.code = "ECONNRESET"; throw e; }
+    return "ok";
+  }, { sleep: noSleep });
+  assert.equal(result, "ok");
+  assert.equal(calls, 2);
+});
+
+test("withRetry honors numeric Retry-After seconds", async () => {
+  const delays = [];
+  let calls = 0;
+  await withRetry(async () => {
+    calls++;
+    if (calls < 2) {
+      const e = new Error("rate limited");
+      e.status = 429;
+      e.headers = { "retry-after": "7" };
+      throw e;
+    }
+    return "ok";
+  }, { sleep: async (ms) => { delays.push(ms); } });
+  assert.deepEqual(delays, [7000]);
+});
