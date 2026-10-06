@@ -33,7 +33,7 @@ npm run smoke     # generate + chained edit against the real API
 - **Add a test for behavior changes.** Pure logic goes in `test/` (`node:test`);
   the live `scripts/smoke.js` covers the API path.
 - **Keep modules focused.** Each `lib/` file has one clear responsibility.
-- **Run `npm test` before opening a PR** — CI runs it on Node 18, 20, and 22.
+- **Run `npm test` before opening a PR** — CI runs it on Node 20, 22, and 24.
 - **Use clear commit messages** (`feat:`, `fix:`, `docs:`, `chore:`).
 
 ## Reporting bugs

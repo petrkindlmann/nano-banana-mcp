@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Live smoke test — requires GEMINI_API_KEY. Uses the flash model (server default).
-// Exercises: generate (jpg output, preview) -> edit chained via interaction_id.
+// Live smoke test — requires GEMINI_API_KEY.
+// Exercises: flash generate (jpg output, preview) -> edit chained via interaction_id,
+// then lite generate to .png (local format conversion + legacy 0.5K size alias).
 import { readFileSync, mkdtempSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -48,6 +49,18 @@ try {
   const editJpegMagic = readFileSync(editPath).subarray(0, 2).equals(Buffer.from([0xff, 0xd8]));
   check("edit_image (chained) wrote a real JPEG", editJpegMagic);
   console.log("---\n" + edit.content[0].text + "\n---");
+
+  // 3. lite returns JPEG bytes; a .png output must be converted locally
+  const litePath = join(dir, "smoke-lite.png");
+  const lite = await toolHandlers.generate_image(client, {
+    prompt: "A single yellow banana on a plain white background",
+    output: litePath,
+    model: "lite",
+    size: "0.5K", // legacy alias, must reach the API as "512"
+  });
+  const pngMagic = readFileSync(litePath).subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  check("generate_image (lite) wrote a real PNG", pngMagic);
+  console.log("---\n" + lite.content[0].text + "\n---");
 } catch (err) {
   check(`unexpected error: ${err.message}`, false);
 } finally {

@@ -19,7 +19,7 @@ function loadConfigWithEnv(env) {
     `resolvedFlash: m.resolveModel("flash"),` +
     `flashSize2K: m.validSize("2K", m.MODELS.flash),` +
     `nanoSize2K: m.validSize("2K", m.MODELS.nano),` +
-    `flashRatio: m.mapRatio("21:9", m.MODELS.flash),` +
+    `liteSize512: m.validSize("512", m.MODELS.lite),` +
     `}))})`;
   const out = execFileSync(process.execPath, ["--input-type=module", "-e", script],
     { env: { ...process.env, ...env }, encoding: "utf8" });
@@ -28,26 +28,35 @@ function loadConfigWithEnv(env) {
 
 test("resolveModel defaults to flash and rejects unknown tiers", () => {
   assert.equal(resolveModel(), MODELS.flash);
+  assert.equal(resolveModel("lite"), MODELS.lite);
   assert.equal(resolveModel("nano"), MODELS.nano);
   assert.equal(resolveModel("pro"), MODELS.pro);
   assert.equal(resolveModel("bogus"), MODELS.flash);
 });
 
 test("mapRatio passes supported ratios through", () => {
-  assert.equal(mapRatio("21:9", MODELS.flash), "21:9");
-  assert.equal(mapRatio("16:9", MODELS.pro), "16:9");
+  assert.equal(mapRatio("21:9"), "21:9");
+  assert.equal(mapRatio("1:8"), "1:8");
 });
 
 test("mapRatio maps unsupported ratios to the closest supported one", () => {
-  assert.equal(mapRatio("21:9", MODELS.pro), "16:9");  // 21:9 is flash-only
-  assert.equal(mapRatio("not-a-ratio", MODELS.flash), "1:1");
+  assert.equal(mapRatio("7:3"), "21:9");
+  assert.equal(mapRatio("17:10"), "16:9");
+  assert.equal(mapRatio("not-a-ratio"), "1:1");
 });
 
 test("validSize clamps per model", () => {
-  assert.equal(validSize("0.5K", MODELS.flash), "0.5K");
-  assert.equal(validSize("0.5K", MODELS.nano), "1K");   // nano is 1K only
+  assert.equal(validSize("512", MODELS.flash), "512");
+  assert.equal(validSize("512", MODELS.lite), "512");
+  assert.equal(validSize("2K", MODELS.lite), "1K");    // lite tops out at 1K
+  assert.equal(validSize("512", MODELS.nano), "1K");   // nano is 1K only
   assert.equal(validSize("4K", MODELS.pro), "4K");
   assert.equal(validSize("8K", MODELS.flash), "1K");
+});
+
+test("validSize maps the legacy 0.5K alias to 512", () => {
+  assert.equal(validSize("0.5K", MODELS.flash), "512");
+  assert.equal(validSize("0.5K", MODELS.nano), "1K");
 });
 
 test("mimeFromPath maps input extensions", () => {
@@ -75,6 +84,7 @@ test("MAX_REFERENCE_IMAGES is 14 per docs", () => {
 });
 
 test("MODELS use documented defaults when no env overrides are set", () => {
+  assert.equal(MODELS.lite, "gemini-3.1-flash-lite-image");
   assert.equal(MODELS.nano, "gemini-2.5-flash-image");
   assert.equal(MODELS.flash, "gemini-3.1-flash-image");
   assert.equal(MODELS.pro, "gemini-3-pro-image");
@@ -91,11 +101,15 @@ test("env vars override per-tier model IDs", () => {
   assert.equal(cfg.resolvedFlash, "gemini-3.2-flash-image"); // resolveModel reflects override
 });
 
-test("capability tables follow the overridden flash ID", () => {
-  // The size/ratio tables key off the (overridden) flash ID, so flash keeps its
-  // 2K/0.5K/wide-ratio capabilities even with a new model string.
-  const cfg = loadConfigWithEnv({ NANO_BANANA_MODEL_FLASH: "gemini-3.2-flash-image" });
-  assert.equal(cfg.flashSize2K, "2K");   // flash supports 2K
-  assert.equal(cfg.nanoSize2K, "1K");    // nano still clamped to 1K
-  assert.equal(cfg.flashRatio, "21:9");  // flash keeps wide ratios
+test("capability tables follow overridden model IDs", () => {
+  // The size table keys off the (overridden) IDs, so each tier keeps its
+  // capabilities even with a new model string.
+  const cfg = loadConfigWithEnv({
+    NANO_BANANA_MODEL_FLASH: "gemini-3.2-flash-image",
+    NANO_BANANA_MODEL_LITE: "gemini-3.2-flash-lite-image",
+  });
+  assert.equal(cfg.models.lite, "gemini-3.2-flash-lite-image");
+  assert.equal(cfg.flashSize2K, "2K");    // flash supports 2K
+  assert.equal(cfg.nanoSize2K, "1K");     // nano still clamped to 1K
+  assert.equal(cfg.liteSize512, "512");   // lite keeps 512
 });

@@ -5,11 +5,14 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { createRequire } from "module";
 import { getClient } from "./lib/gemini.js";
 import { toolDefinitions, toolHandlers } from "./lib/tools.js";
 
+const { version } = createRequire(import.meta.url)("./package.json");
+
 const server = new Server(
-  { name: "nano-banana", version: "2.1.0" },
+  { name: "nano-banana", version },
   { capabilities: { tools: {} } }
 );
 

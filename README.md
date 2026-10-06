@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/petrkindlmann/nano-banana-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/petrkindlmann/nano-banana-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20.9-green.svg)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-server-blue.svg)](https://modelcontextprotocol.io)
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for **AI image generation and editing** with Google's Gemini "Nano Banana" image models, via the [Interactions API](https://ai.google.dev/gemini-api/docs/interactions/image-generation).
@@ -79,6 +79,7 @@ Restart your client. The five tools below will appear.
 | Env var | Required | Description |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | ✅ | Your Gemini API key. |
+| `NANO_BANANA_MODEL_LITE` | — | Override the `lite` tier's model ID. |
 | `NANO_BANANA_MODEL_NANO` | — | Override the `nano` tier's model ID. |
 | `NANO_BANANA_MODEL_FLASH` | — | Override the `flash` tier's model ID. |
 | `NANO_BANANA_MODEL_PRO` | — | Override the `pro` tier's model ID. |
@@ -94,7 +95,7 @@ model without editing code:
 }
 ```
 
-Each tier keeps its capability profile (sizes, aspect ratios, grounding) regardless of
+Each tier keeps its capability profile (sizes, grounding) regardless of
 the ID you assign it.
 
 ## Usage
@@ -125,23 +126,32 @@ stay consistent.
 
 ### Models
 
-| Tier | Model ID | Sizes | Search grounding | Thinking | Video input | JPEG output |
-| --- | --- | --- | --- | --- | --- | --- |
-| `nano` | `gemini-2.5-flash-image` | 1K | — | — | — | — (PNG only) |
-| `flash` | `gemini-3.1-flash-image` | 0.5K, 1K, 2K, 4K | web + image | — | ✅ | ✅ |
-| `pro` | `gemini-3-pro-image` | 1K, 2K, 4K | web | ✅ | — | ✅ |
+| Tier | Model ID | Sizes | Search grounding | Thinking | Video input |
+| --- | --- | --- | --- | --- | --- |
+| `lite` | `gemini-3.1-flash-lite-image` | 512, 1K | — | — | — |
+| `nano` | `gemini-2.5-flash-image` | 1K | — | — | — |
+| `flash` | `gemini-3.1-flash-image` | 512, 1K, 2K, 4K | web + image | — | ✅ |
+| `pro` | `gemini-3-pro-image` | 512, 1K, 2K, 4K | web | ✅ | — |
+
+Every tier accepts all 14 aspect ratios (`1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`,
+`9:16`, `16:9`, `21:9`, `1:4`, `4:1`, `1:8`, `8:1`). Output files always match their
+extension (`.png`, `.jpg`, `.webp`): the API returns JPEG (PNG for `nano`), and the
+server converts locally when the extension asks for something else.
 
 **Which should I use?**
 
 - **`flash` (default) — your go-to.** Best all-around balance of quality, cost, and
-  latency. Up to 4K, search grounding, the widest aspect ratios (`21:9`, `1:4`, etc.),
-  and the only tier that accepts video input.
+  latency. Up to 4K, web + image search grounding, and the only tier that accepts
+  video input.
 - **`pro` — the highest-quality renderer.** Use for professional/deliverable assets,
   complex multi-element instructions, and legible **text rendered inside the image**
   (infographics, posters, menus). A built-in "Thinking" pass refines composition before
   rendering. Slower and pricier.
-- **`nano` — speed and volume.** 1K-only, no grounding/thinking, always returns PNG.
-  Reach for it when generating many images fast and per-image quality matters less.
+- **`lite` — speed and volume.** Nano Banana 2 Lite: Google's fastest, cheapest image
+  model. 1K max, no grounding. Reach for it when generating many images fast — drafts,
+  thumbnails, quick local edits.
+- **`nano` — the original Nano Banana.** 1K-only, no grounding/thinking. The most
+  widely available tier if your key lacks Gemini 3 access.
 
 > `generate_story` defaults to `pro` (best interleaved quality); `generate_from_video`
 > is locked to `flash` (the only tier that accepts video).
@@ -151,10 +161,10 @@ stay consistent.
 | Arg | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `prompt` | string | — | **Required.** What to generate. |
-| `output` | string | — | **Required.** Output file path. Extension picks the format: `.png` (default) or `.jpg` (flash/pro only — nano always returns PNG). |
-| `model` | `nano`/`flash`/`pro` | `flash` | Model tier. |
-| `ratio` | string | `1:1` | e.g. `16:9`, `9:16`, `4:3`; `21:9`/`1:4`/`4:1`/`1:8`/`8:1` are flash-only. |
-| `size` | `0.5K`/`1K`/`2K`/`4K` | `1K` | `0.5K` is flash-only. |
+| `output` | string | — | **Required.** Output file path. Extension picks the format: `.png` (default), `.jpg` or `.webp`. |
+| `model` | `lite`/`nano`/`flash`/`pro` | `flash` | Model tier. |
+| `ratio` | string | `1:1` | e.g. `16:9`, `9:16`, `21:9`, `1:8`; unsupported ratios snap to the closest one. |
+| `size` | `512`/`1K`/`2K`/`4K` | `1K` | `2K`/`4K` need flash/pro; nano is 1K-only. |
 | `use_search` | boolean | `false` | Ground with Google Search (flash/pro). |
 | `use_image_search` | boolean | `false` | Also use Google Image Search as visual context (flash). |
 | `show_thinking` | boolean | `false` | Include the model's thought summaries (pro). |
@@ -178,7 +188,7 @@ Same image controls as `generate_image`, plus:
 | `prompt` | string | — | **Required.** e.g. *"A 6-panel storyboard of a fox learning to fly, illustrations interleaved with captions."* |
 | `output_dir` | string | — | **Required.** Directory for the numbered images. |
 | `basename` | string | `story` | Filename prefix. |
-| `model` | `nano`/`flash`/`pro` | `pro` | `pro` gives the best interleaved quality. |
+| `model` | `lite`/`nano`/`flash`/`pro` | `pro` | `pro` gives the best interleaved quality. |
 | `ratio` / `size` | string | — | Optional; omit to let the model decide. |
 
 ### `generate_icon_set`
@@ -187,8 +197,8 @@ Same image controls as `generate_image`, plus:
 | --- | --- | --- | --- |
 | `prompts` | string[] | — | **Required.** One prompt per icon. |
 | `output_dir` | string | — | **Required.** Files are named after each prompt (`icon-shopping-cart.png`). |
-| `model` | `nano`/`flash`/`pro` | `flash` | |
-| `size` | `0.5K`/`1K`/`2K`/`4K` | `1K` | |
+| `model` | `lite`/`nano`/`flash`/`pro` | `flash` | |
+| `size` | `512`/`1K`/`2K`/`4K` | `1K` | |
 
 ### `generate_from_video`
 
@@ -198,7 +208,7 @@ Same image controls as `generate_image`, plus:
 | `prompt` | string | — | **Required.** What to generate from the video. |
 | `output` | string | — | **Required.** Output file path. |
 | `ratio` | string | `16:9` | |
-| `size` | `0.5K`/`1K`/`2K`/`4K` | `1K` | |
+| `size` | `512`/`1K`/`2K`/`4K` | `1K` | |
 | `preview` | boolean | `true` | |
 
 ## Prompt tips
@@ -211,7 +221,7 @@ For best results, write full sentences describing **subject + setting + lighting
 
 ## Requirements
 
-- **Node.js 18+** (uses the built-in `node:test` runner and modern ES modules)
+- **Node.js 20.9+** (required by `@google/genai` and `sharp`)
 - A **Gemini API key** (`GEMINI_API_KEY`)
 - The Interactions API is **beta**; Gemini 3 image tiers (`flash`, `pro`) may require access. The `nano` tier is the most widely available — set `model: "nano"` if `flash`/`pro` are unavailable on your key.
 

@@ -149,3 +149,12 @@ test("sniffMime detects png, jpeg, webp, and unknown", async () => {
   assert.equal(sniffMime(webp), "image/webp");
   assert.equal(sniffMime(Buffer.from("garbage")), null);
 });
+
+test("convertImage re-encodes to the wanted format and passes matches through", async () => {
+  const { sniffMime, convertImage } = await import("../lib/gemini.js");
+  const jpg = await sharp({ create: { width: 4, height: 4, channels: 3, background: { r: 1, g: 2, b: 3 } } }).jpeg().toBuffer();
+  assert.equal(sniffMime(await convertImage(jpg, "image/png")), "image/png");
+  assert.equal(sniffMime(await convertImage(jpg, "image/webp")), "image/webp");
+  assert.equal(await convertImage(jpg, "image/jpeg"), jpg); // same buffer, no re-encode
+  await assert.rejects(convertImage(Buffer.from("garbage"), "image/png"));
+});
